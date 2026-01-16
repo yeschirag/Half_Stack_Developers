@@ -8,7 +8,15 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://ghost-collab.vercel.app',
+    /\.vercel\.app$/,  // Allow all Vercel preview deployments
+  ],
+  credentials: true,
+}));
 app.use(express.json());
 
 // Routes
