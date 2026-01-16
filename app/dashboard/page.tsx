@@ -9,6 +9,7 @@ import ProjectDetailModal from './components/ProjectDetailModal';
 import FilterSortBar from './components/FilterSortBar';
 import SearchPeople from './components/SearchPeople';
 import Notifications from './components/Notifications';
+import MyProfile from './components/MyProfile';
 import { FiLoader } from 'react-icons/fi';
 
 // Project type definition
@@ -392,11 +393,7 @@ export default function DashboardPage() {
           )}
           
           {activeTab === 'profile' && (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="mb-6 text-8xl">👤</div>
-              <h2 className="text-2xl font-semibold text-white">Profile Setup</h2>
-              <p className="mt-2 text-gray-500">Coming in the next update</p>
-            </div>
+            <MyProfile user={userData} />
           )}
         </div>
       </main>
