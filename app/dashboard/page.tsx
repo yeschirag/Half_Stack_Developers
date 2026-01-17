@@ -24,6 +24,7 @@ interface Project {
   elevatorPitch: string;
   missingRoles: string[];
   compatibilityScore: number;
+  ownerId: string;
   owner: {
     name: string;
     avatar: string | null;
@@ -93,6 +94,7 @@ export default function DashboardPage() {
             elevatorPitch: data.description || '',
             missingRoles: Array.isArray(data.roleGaps) ? data.roleGaps : [],
             compatibilityScore: Math.floor(Math.random() * 20) + 80, // TODO: Replace with real AI score
+            ownerId: data.ownerId || '',
             owner: {
               name: 'Anonymous', // TODO: Fetch owner name from users/{ownerId}
               avatar: null,
