@@ -13,6 +13,8 @@ import FilterSortBar from './components/FilterSortBar';
 import SearchPeople from './components/SearchPeople';
 import Notifications from './components/Notifications';
 import MyProfile from './components/MyProfile';
+import Meetups from './components/Meetups';
+import Schedule from './components/Schedule';
 import { FiLoader } from 'react-icons/fi';
 
 // Project type definition (matches your UI)
@@ -247,6 +249,11 @@ export default function DashboardPage() {
                   Explore Projects
                 </span>
               )}
+              {activeTab === 'meetups' && (
+                <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                  Meetups
+                </span>
+              )}
               {activeTab === 'search' && 'Search People'}
               {activeTab === 'notifications' && 'Notifications'}
               {activeTab === 'profile' && 'My Profile'}
@@ -254,6 +261,7 @@ export default function DashboardPage() {
             <p className="mt-2 text-gray-500">
               {activeTab === 'explore' &&
                 `${filteredAndSortedProjects.length} projects looking for someone like you`}
+              {activeTab === 'meetups' && 'Your upcoming and completed meetups'}
               {activeTab === 'search' && 'Find collaborators across departments'}
               {activeTab === 'notifications' && 'Stay updated on your matches'}
               {activeTab === 'profile' && 'Manage your skills and preferences'}
@@ -282,6 +290,20 @@ export default function DashboardPage() {
                 />
               )}
             </>
+          )}
+
+          {activeTab === 'meetups' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Meetups Section - 2/3 width */}
+              <div className="lg:col-span-2 border border-[#333333] rounded-lg p-6 bg-[#0f0f14]/40 backdrop-blur-sm hover:border-[#B19EEF] transition-colors">
+                <Meetups />
+              </div>
+
+              {/* Schedule Section - 1/3 width */}
+              <div className="lg:col-span-1 border border-[#333333] rounded-lg p-6 bg-[#0f0f14]/40 backdrop-blur-sm hover:border-[#B19EEF] transition-colors">
+                <Schedule />
+              </div>
+            </div>
           )}
 
           {activeTab === 'search' && <SearchPeople />}

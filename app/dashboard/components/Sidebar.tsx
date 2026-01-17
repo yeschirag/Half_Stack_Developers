@@ -10,7 +10,8 @@ import {
   FiUser,
   FiLogOut,
   FiMenu,
-  FiX
+  FiX,
+  FiClock
 } from 'react-icons/fi';
 
 interface User {
@@ -30,6 +31,7 @@ interface SidebarProps {
 
 const navItems = [
   { id: 'explore', label: 'Explore', icon: FiCompass },
+  { id: 'meetups', label: 'Meetups', icon: FiClock },
   { id: 'search', label: 'Search People', icon: FiSearch },
   { id: 'notifications', label: 'Notifications', icon: FiBell, badge: 3 },
   { id: 'profile', label: 'Profile', icon: FiUser },
