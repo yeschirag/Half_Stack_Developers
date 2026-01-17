@@ -7,10 +7,14 @@ import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import {
   getAuth,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   GoogleAuthProvider,
-  OAuthProvider,
+  signOut,
 } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
+
+const ALLOWED_EMAIL_DOMAINS = ['iiits.in'];
 
 // 🔥 Replace with your Firebase config (from Firebase Console > Project Settings > SDK setup)
 const firebaseConfig = {
@@ -28,6 +32,9 @@ const auth = getAuth(app);
 
 export default function HeroClient() {
   const [loading, setLoading] = useState(false);
+  const [showTestLogin, setShowTestLogin] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+  const [testPassword, setTestPassword] = useState('');
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -38,10 +45,22 @@ export default function HeroClient() {
       // Replace 'your-university.edu' with actual domain(s)
       // Note: This is a hint — users can still pick other accounts, but you can validate later on backend
       provider.setCustomParameters({
-        hd: 'iiits.in', 
+        // Google only supports ONE hosted domain here (UI hint only).
+        // Real enforcement is done below + on backend.
+        hd: 'iiits.in',
       });
 
       const result = await signInWithPopup(auth, provider);
+
+      // Enforce allowed email domains (client-side)
+      const email = (result.user.email || '').toLowerCase();
+      const isAllowed = ALLOWED_EMAIL_DOMAINS.some((d) => email.endsWith(`@${d}`));
+      if (!isAllowed) {
+        await signOut(auth);
+        alert(`Only ${ALLOWED_EMAIL_DOMAINS.join(' / ')} emails are allowed.`);
+        return;
+      }
+
       const idToken = await result.user.getIdToken(); // 🔑 This is your auth token
 
       // 💡 Log token for manual API testing (remove in production)
@@ -67,6 +86,78 @@ export default function HeroClient() {
     } catch (error: any) {
       console.error('Sign-in error:', error);
       alert(`Login failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Email/password login - also handles Google-only accounts gracefully
+  const handleTestLogin = async () => {
+    if (!testEmail || !testPassword) {
+      alert('Please enter both email and password');
+      return;
+    }
+    setLoading(true);
+    try {
+      // Check what sign-in methods are available for this email
+      const methods = await fetchSignInMethodsForEmail(auth, testEmail);
+      
+      // If account exists but only has Google provider, trigger Google sign-in
+      if (methods.length > 0 && !methods.includes('password')) {
+        if (methods.includes('google.com')) {
+          alert('This account uses Google Sign-In. Redirecting to Google...');
+          // Trigger Google sign-in with email hint
+          const provider = new GoogleAuthProvider();
+          provider.setCustomParameters({ login_hint: testEmail });
+          const result = await signInWithPopup(auth, provider);
+          const idToken = await result.user.getIdToken();
+          
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+          const response = await fetch(`${API_URL}/api/auth/me`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+          const data = await response.json();
+          if (data.success) {
+            window.location.href = '/dashboard';
+          } else {
+            alert('Authentication failed on server');
+          }
+          return;
+        }
+      }
+
+      // Otherwise, try email/password login
+      const result = await signInWithEmailAndPassword(auth, testEmail, testPassword);
+      const idToken = await result.user.getIdToken();
+
+      console.log('✅ User signed in:', result.user.email);
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('✅ Backend verified user:', data.user);
+        window.location.href = '/dashboard';
+      } else {
+        alert('Authentication failed on server');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      // Better error messages
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+        alert('Invalid email or password');
+      } else if (error.code === 'auth/user-not-found') {
+        alert('No account found with this email');
+      } else {
+        alert(`Login failed: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -125,6 +216,43 @@ export default function HeroClient() {
           {loading ? 'Signing in...' : 'Sign in with Google'}
         </button>
       </div>
+
+      {/* Test User Login Toggle */}
+      <div className="pt-4">
+        <button
+          onClick={() => setShowTestLogin(!showTestLogin)}
+          className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+        >
+          {showTestLogin ? 'Hide' : 'Client/Test Login'}
+        </button>
+      </div>
+
+      {/* Test Login Form */}
+      {showTestLogin && (
+        <div className="pt-2 space-y-3 max-w-xs mx-auto">
+          <input
+            type="email"
+            placeholder="Test email"
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            className="w-full h-10 px-4 rounded-lg border border-white/10 bg-white/5 text-white text-sm placeholder:text-gray-500 outline-none focus:border-[#B19EEF]/50"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={testPassword}
+            onChange={(e) => setTestPassword(e.target.value)}
+            className="w-full h-10 px-4 rounded-lg border border-white/10 bg-white/5 text-white text-sm placeholder:text-gray-500 outline-none focus:border-[#B19EEF]/50"
+          />
+          <button
+            onClick={handleTestLogin}
+            disabled={loading}
+            className="w-full h-10 rounded-lg border border-[#B19EEF]/30 bg-[#B19EEF]/10 text-[#B19EEF] text-sm font-medium hover:bg-[#B19EEF]/20 transition-all disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Login'}
+          </button>
+        </div>
+      )}
 
       {/* 🔮 Nearly Invisible Demo Link */}
       <div className="pt-3">
