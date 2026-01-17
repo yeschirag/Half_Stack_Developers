@@ -1,7 +1,10 @@
+// src/components/dashboard/SearchPeople.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiMapPin, FiCode, FiStar, FiMessageCircle } from 'react-icons/fi';
+import { db } from '@/lib/firebase-client';
+import { collection, getDocs, query } from 'firebase/firestore';
 
 interface Person {
   id: string;
@@ -15,82 +18,68 @@ interface Person {
   matchScore: number;
 }
 
-const mockPeople: Person[] = [
-  {
-    id: '1',
-    name: 'Aditya Kumar',
-    avatar: null,
-    department: 'Computer Science',
-    year: '3rd Year',
-    skills: ['React', 'Node.js', 'Python', 'MongoDB'],
-    interests: ['Web Dev', 'AI/ML', 'Open Source'],
-    lookingFor: 'Looking to join an AI startup idea',
-    matchScore: 94,
-  },
-  {
-    id: '2',
-    name: 'Priya Menon',
-    avatar: null,
-    department: 'Design',
-    year: '2nd Year',
-    skills: ['Figma', 'UI/UX', 'Illustration', 'Framer'],
-    interests: ['Product Design', 'Branding', 'Motion'],
-    lookingFor: 'Seeking technical co-founder for design tool',
-    matchScore: 88,
-  },
-  {
-    id: '3',
-    name: 'Rohan Gupta',
-    avatar: null,
-    department: 'Data Science',
-    year: '4th Year',
-    skills: ['Python', 'TensorFlow', 'SQL', 'Tableau'],
-    interests: ['ML', 'Analytics', 'FinTech'],
-    lookingFor: 'Building a stock prediction platform',
-    matchScore: 82,
-  },
-  {
-    id: '4',
-    name: 'Sneha Reddy',
-    avatar: null,
-    department: 'Electronics',
-    year: '3rd Year',
-    skills: ['IoT', 'Arduino', 'Embedded C', 'PCB Design'],
-    interests: ['Hardware', 'Robotics', 'Smart Home'],
-    lookingFor: 'Need app developers for IoT project',
-    matchScore: 76,
-  },
-  {
-    id: '5',
-    name: 'Karthik Nair',
-    avatar: null,
-    department: 'Business',
-    year: '2nd Year',
-    skills: ['Marketing', 'Sales', 'Excel', 'Pitching'],
-    interests: ['Startups', 'Growth', 'Strategy'],
-    lookingFor: 'Technical co-founder for ed-tech idea',
-    matchScore: 85,
-  },
-  {
-    id: '6',
-    name: 'Ananya Singh',
-    avatar: null,
-    department: 'Computer Science',
-    year: '4th Year',
-    skills: ['Flutter', 'Dart', 'Firebase', 'Swift'],
-    interests: ['Mobile Dev', 'Health Tech', 'Social Good'],
-    lookingFor: 'Building mental health app for students',
-    matchScore: 91,
-  },
-];
-
 const skillFilters = ['Frontend', 'Backend', 'Mobile', 'AI/ML', 'Design', 'Business', 'IoT'];
 const departmentFilters = ['Computer Science', 'Design', 'Business', 'Electronics', 'Data Science'];
+
+const skillKeywordMap: Record<string, string[]> = {
+  Frontend: ['React', 'Next.js', 'Vue', 'Angular', 'HTML', 'CSS', 'Tailwind', 'Svelte'],
+  Backend: ['Node.js', 'Express', 'Python', 'Django', 'Flask', 'Java', 'Spring', 'Go', 'Rust'],
+  Mobile: ['React Native', 'Flutter', 'Swift', 'Kotlin', 'Android', 'iOS'],
+  'AI/ML': ['TensorFlow', 'PyTorch', 'Scikit-learn', 'NLP', 'Computer Vision', 'ML', 'AI'],
+  Design: ['Figma', 'UI/UX', 'Illustration', 'Adobe XD', 'Sketch', 'Prototyping'],
+  Business: ['Marketing', 'Sales', 'Strategy', 'Pitching', 'Finance', 'Operations'],
+  IoT: ['Arduino', 'Raspberry Pi', 'Embedded', 'PCB', 'Hardware', 'Robotics'],
+};
 
 export default function SearchPeople() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSkillFilters, setActiveSkillFilters] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const q = query(collection(db, 'users'));
+        const querySnapshot = await getDocs(q);
+
+        const fetchedPeople: Person[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (!data.email?.includes('@')) return;
+
+          const matchScore = Math.floor(Math.random() * 25) + 75;
+
+          fetchedPeople.push({
+            id: doc.id,
+            name: data.name || 'Anonymous',
+            avatar: data.avatar || null,
+            department: data.department || 'Unknown',
+            year: data.year ? `Year ${data.year}` : '',
+            skills: Array.isArray(data.skills) ? data.skills : [],
+            interests: Array.isArray(data.interests) ? data.interests : [],
+            // ✅ Use `bio` instead of "Open to collaboration"
+            lookingFor: data.bio || 'No bio yet',
+            matchScore,
+          });
+        });
+
+        setPeople(fetchedPeople);
+      } catch (err: any) {
+        console.error('Failed to fetch users:', err);
+        setError('Failed to load people. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const getInitials = (name: string) => {
     return name
@@ -101,17 +90,44 @@ export default function SearchPeople() {
       .slice(0, 2);
   };
 
-  const filteredPeople = mockPeople.filter((person) => {
+  const filteredPeople = people.filter((person) => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      return (
+      const matchesSearch =
         person.name.toLowerCase().includes(query) ||
-        person.skills.some((s) => s.toLowerCase().includes(query)) ||
-        person.department.toLowerCase().includes(query)
-      );
+        person.department.toLowerCase().includes(query) ||
+        person.skills.some((s) => s.toLowerCase().includes(query));
+      if (!matchesSearch) return false;
     }
+
+    if (activeSkillFilters.length > 0) {
+      const hasMatchingSkill = activeSkillFilters.some((filter) => {
+        const keywords = skillKeywordMap[filter] || [filter];
+        return person.skills.some((skill) =>
+          keywords.some((kw) => skill.toLowerCase().includes(kw.toLowerCase()))
+        );
+      });
+      if (!hasMatchingSkill) return false;
+    }
+
     return true;
   });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="text-gray-400">Loading people...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-400 text-center py-6">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -176,7 +192,6 @@ export default function SearchPeople() {
             className="group rounded-2xl bg-[#12121a] border border-white/5 p-5 hover:border-[#B19EEF]/30 transition-all duration-300"
           >
             <div className="flex items-start gap-4">
-              {/* Avatar */}
               <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-[#B19EEF] to-[#8B7BD4] flex items-center justify-center text-lg font-semibold text-[#0a0a0f]">
                 {person.avatar ? (
                   <img src={person.avatar} alt={person.name} className="w-full h-full rounded-full object-cover" />
@@ -185,7 +200,6 @@ export default function SearchPeople() {
                 )}
               </div>
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-lg font-semibold text-white truncate">{person.name}</h3>
@@ -201,10 +215,9 @@ export default function SearchPeople() {
               </div>
             </div>
 
-            {/* Looking For */}
+            {/* ✅ Now shows user's bio */}
             <p className="mt-4 text-sm text-gray-400 line-clamp-2">{person.lookingFor}</p>
 
-            {/* Skills */}
             <div className="mt-4 flex flex-wrap gap-1.5">
               {person.skills.slice(0, 4).map((skill) => (
                 <span
@@ -221,7 +234,6 @@ export default function SearchPeople() {
               )}
             </div>
 
-            {/* Action Button */}
             <button className="mt-4 w-full py-2.5 rounded-xl bg-[#B19EEF]/10 border border-[#B19EEF]/20 text-[#B19EEF] text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#B19EEF]/20 transition-all duration-200">
               <FiMessageCircle size={16} />
               Connect

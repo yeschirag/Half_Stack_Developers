@@ -1,9 +1,12 @@
+// src/app/dashboard/add-project/page.tsx
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiArrowLeft, FiPlus, FiX, FiSave } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
+import { db } from '@/lib/firebase-client';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
 type ProjectStatus = 'open' | 'in-progress' | 'completed';
 
@@ -148,28 +151,33 @@ export default function AddProjectPage() {
 
     setSubmitting(true);
 
-    const payload = {
-      ownerId: user.uid,
-      title: title.trim(),
-      description: description.trim(),
-      roleGaps,
-      status,
-      createdAt: new Date(),
-      timeline: timeline ? new Date(timeline) : null,
-      Techstack: techStack,
-      totalnumberofmembers: totalMembers,
-      currentnumberofmembers: currentMembers,
-      githubrepo: githubRepo.trim() || null,
-      currentprojectstage: stage,
-    };
+    try {
+      // 🔥 Write to Firestore with your exact schema
+      const newProject = {
+        ownerId: user.uid,
+        title: title.trim(),
+        description: description.trim(),
+        roleGaps,
+        status,
+        createdAt: Timestamp.now(),
+        timeline: timeline ? Timestamp.fromDate(new Date(timeline)) : null,
+        Techstack: techStack,
+        totalnumberofmembers: totalMembers,
+        currentnumberofmembers: currentMembers,
+        github_link: githubRepo.trim() || null, // ✅ matches your field name
+        currentprojectstage: stage,
+      };
 
-    // TODO: Replace with API call / Firestore write
-    console.log('Create project payload:', payload);
+      await addDoc(collection(db, 'projects'), newProject);
 
-    setTimeout(() => {
-      setSubmitting(false);
+      // Redirect to dashboard on success
       router.push('/dashboard');
-    }, 600);
+    } catch (error: any) {
+      console.error('Firestore write error:', error);
+      setFormError('Failed to save project. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (authLoading) {
