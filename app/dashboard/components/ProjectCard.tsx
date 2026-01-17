@@ -67,9 +67,9 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
   return (
     <button
       onClick={onClick}
-      className="group relative w-full overflow-hidden rounded-2xl border border-white/5 bg-[#12121a] text-left transition-all duration-300 hover:border-[#B19EEF]/30 hover:bg-[#15151f] font-['Inter',sans-serif]"
+      className="group relative w-full h-full flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-[#12121a] text-left transition-all duration-300 hover:border-[#B19EEF]/30 hover:bg-[#15151f] font-['Inter',sans-serif]"
     >
-      <div className="p-5">
+      <div className="p-5 flex flex-col h-full">
         {/* Top row: Stage badge & Score */}
         <div className="flex items-center justify-between mb-4">
           {project.stage && (
@@ -144,8 +144,11 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
           </div>
         </div>
 
-        {/* Elevator Pitch */}
-        <p className="text-sm leading-relaxed text-gray-400 line-clamp-2 mb-4">
+        {/* Elevator Pitch (truncate to 2 lines with ellipsis) */}
+        <p
+          className="text-sm leading-relaxed text-gray-400 mb-4 flex-1 overflow-hidden text-ellipsis break-words"
+          style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+        >
           {project.elevatorPitch}
         </p>
 

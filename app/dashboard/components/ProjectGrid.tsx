@@ -45,9 +45,9 @@ export default function ProjectGrid({ projects, onProjectClick }: ProjectGridPro
   }
 
   return (
-    <div className="columns-1 gap-6 sm:columns-2 lg:columns-3">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {projects.map((project) => (
-        <div key={project.id} className="mb-6 break-inside-avoid">
+        <div key={project.id} className="h-full">
           <ProjectCard
             project={project}
             onClick={() => onProjectClick(project)}

@@ -67,7 +67,6 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('explore');
   const [currentSort, setCurrentSort] = useState('match');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -226,20 +225,12 @@ export default function DashboardPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onCreateProject={handleCreateProject}
-        isCollapsed={isSidebarCollapsed}
-        onCollapseChange={setIsSidebarCollapsed}
       />
 
       {/* Main Content */}
-      <main
-        className={`relative z-10 min-h-screen transition-all duration-300 ${
-          isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'
-        }`}
-      >
+      <main className="relative z-10 min-h-screen md:ml-64">
         <div
-          className={`px-4 py-8 md:px-8 pt-16 md:pt-8 w-full ${
-            isSidebarCollapsed ? 'max-w-none' : 'max-w-7xl'
-          }`}
+          className="px-4 py-8 md:px-8 pt-16 md:pt-8 w-full max-w-7xl"
         >
           {/* Page Header */}
           <div className="mb-6">
@@ -293,14 +284,14 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'meetups' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Meetups Section - 2/3 width */}
-              <div className="lg:col-span-2 border border-[#333333] rounded-lg p-6 bg-[#0f0f14]/40 backdrop-blur-sm hover:border-[#B19EEF] transition-colors">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+              {/* Meetups Section - 2/3 width, natural height */}
+              <div className="lg:col-span-2 border border-[#333333] rounded-xl p-5 bg-[#0f0f14]/40 backdrop-blur-sm">
                 <Meetups />
               </div>
 
-              {/* Schedule Section - 1/3 width */}
-              <div className="lg:col-span-1 border border-[#333333] rounded-lg p-6 bg-[#0f0f14]/40 backdrop-blur-sm hover:border-[#B19EEF] transition-colors">
+              {/* Schedule Section - 1/3 width, stretches to match left, scrolls inside */}
+              <div className="lg:col-span-1">
                 <Schedule />
               </div>
             </div>

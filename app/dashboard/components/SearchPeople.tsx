@@ -189,7 +189,7 @@ export default function SearchPeople() {
         {filteredPeople.map((person) => (
           <div
             key={person.id}
-            className="group rounded-2xl bg-[#12121a] border border-white/5 p-5 hover:border-[#B19EEF]/30 transition-all duration-300"
+            className="group flex flex-col h-full rounded-2xl bg-[#12121a] border border-white/5 p-5 hover:border-[#B19EEF]/30 transition-all duration-300"
           >
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-[#B19EEF] to-[#8B7BD4] flex items-center justify-center text-lg font-semibold text-[#0a0a0f]">
@@ -215,20 +215,21 @@ export default function SearchPeople() {
               </div>
             </div>
 
-            {/* ✅ Now shows user's bio */}
-            <p className="mt-4 text-sm text-gray-400 line-clamp-2">{person.lookingFor}</p>
+            {/* Bio - fixed height area */}
+            <p className="mt-4 text-sm text-gray-400 line-clamp-2 min-h-[40px]">{person.lookingFor}</p>
 
-            <div className="mt-4 flex flex-wrap gap-1.5">
+            {/* Skills - flex-1 to push button down */}
+            <div className="mt-4 flex flex-wrap gap-1.5 flex-1">
               {person.skills.slice(0, 4).map((skill) => (
                 <span
                   key={skill}
-                  className="px-2 py-1 rounded-lg bg-white/5 text-xs text-gray-400"
+                  className="px-2 py-1 rounded-lg bg-white/5 text-xs text-gray-400 h-fit"
                 >
                   {skill}
                 </span>
               ))}
               {person.skills.length > 4 && (
-                <span className="px-2 py-1 rounded-lg bg-white/5 text-xs text-gray-500">
+                <span className="px-2 py-1 rounded-lg bg-white/5 text-xs text-gray-500 h-fit">
                   +{person.skills.length - 4}
                 </span>
               )}

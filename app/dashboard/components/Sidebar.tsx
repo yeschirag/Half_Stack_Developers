@@ -25,8 +25,6 @@ interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onCreateProject: () => void;
-  isCollapsed: boolean;
-  onCollapseChange: (collapsed: boolean) => void;
 }
 
 const navItems = [
@@ -42,8 +40,6 @@ export default function Sidebar({
   activeTab,
   onTabChange,
   onCreateProject,
-  isCollapsed,
-  onCollapseChange,
 }: SidebarProps) {
   const { logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -66,14 +62,12 @@ export default function Sidebar({
       {/* Logo */}
       <div className="flex h-16 items-center px-4 border-b border-white/5">
         <a href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl overflow-hidden">
-            <img src="/ghost-collab.jpg" alt="Ghost Collab" className="h-full w-full object-cover" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 overflow-hidden">
+            <img src="/ghost-collab.png" alt="Ghost Collab" className="h-full w-full object-cover object-[center_60%] scale-[2.2]" />
           </div>
-          {!isCollapsed && (
-            <span className="text-lg font-bold text-white">
-              Ghost<span className="text-[#B19EEF]">Collab</span>
-            </span>
-          )}
+          <span className="text-lg font-bold text-white">
+            Ghost<span className="text-[#B19EEF]">Collab</span>
+          </span>
         </a>
       </div>
 
@@ -94,14 +88,12 @@ export default function Sidebar({
                 isActive
                   ? 'bg-[#B19EEF]/15 text-[#B19EEF]'
                   : 'text-gray-400 hover:bg-white/5 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : 'gap-3'}`}
+              } gap-3`}
             >
               <Icon size={22} className={isActive ? 'text-[#B19EEF]' : ''} />
-              {!isCollapsed && (
-                <span className="font-medium">{item.label}</span>
-              )}
+              <span className="font-medium">{item.label}</span>
               {item.badge && (
-                <span className={`absolute ${isCollapsed ? 'right-1 top-1' : 'right-3'} flex h-5 min-w-5 items-center justify-center rounded-full bg-[#B19EEF] px-1.5 text-xs font-bold text-[#0a0a0f]`}>
+                <span className="absolute right-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#B19EEF] px-1.5 text-xs font-bold text-[#0a0a0f]">
                   {item.badge}
                 </span>
               )}
@@ -118,18 +110,16 @@ export default function Sidebar({
             onCreateProject();
             setIsMobileOpen(false);
           }}
-          className={`mt-4 flex w-full items-center rounded-xl bg-gradient-to-r from-[#B19EEF] to-[#8B7BD4] px-3 py-3 font-semibold text-[#0a0a0f] transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-lg hover:shadow-[#B19EEF]/25 ${
-            isCollapsed ? 'justify-center' : 'gap-3'
-          }`}
+          className="mt-4 flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-[#B19EEF] to-[#8B7BD4] px-3 py-3 font-semibold text-[#0a0a0f] transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-lg hover:shadow-[#B19EEF]/25"
         >
           <FiPlusSquare size={22} />
-          {!isCollapsed && <span>Add Project</span>}
+          <span>Add Project</span>
         </button>
       </nav>
 
       {/* User Section */}
       <div className="border-t border-white/5 p-3 space-y-3">
-        <div className={`flex items-center gap-3 rounded-xl p-2 ${isCollapsed ? 'justify-center' : ''}`}>
+        <div className="flex items-center gap-3 rounded-xl p-2">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#B19EEF] to-[#8B7BD4] text-sm font-semibold text-[#0a0a0f]">
             {user.avatar ? (
               <img
@@ -141,21 +131,17 @@ export default function Sidebar({
               getInitials(user.name)
             )}
           </div>
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-white">{user.name}</p>
-              <p className="truncate text-xs text-gray-500">{user.email}</p>
-            </div>
-          )}
-          {!isCollapsed && (
-            <button
-              onClick={handleLogout}
-              className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
-              title="Sign out"
-            >
-              <FiLogOut size={18} />
-            </button>
-          )}
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-medium text-white">{user.name}</p>
+            <p className="truncate text-xs text-gray-500">{user.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+            title="Sign out"
+          >
+            <FiLogOut size={18} />
+          </button>
         </div>
       </div>
     </div>
@@ -195,30 +181,8 @@ export default function Sidebar({
       </aside>
 
       {/* Desktop Sidebar */}
-      <aside
-        className={`hidden md:flex fixed left-0 top-0 h-full flex-col bg-[#0a0a0f] border-r border-white/5 transition-[width] duration-300 ease-out ${
-          isCollapsed ? 'w-20' : 'w-64'
-        }`}
-      >
+      <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 flex-col bg-[#0a0a0f] border-r border-white/5">
         <SidebarContent />
-        
-        {/* Collapse Toggle - Sleek pill button */}
-        <button
-          onClick={() => onCollapseChange(!isCollapsed)}
-          className="absolute -right-4 top-1/2 -translate-y-1/2 group"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#B19EEF]/10 border border-[#B19EEF]/20 text-[#B19EEF] transition-all duration-300 hover:bg-[#B19EEF]/20 hover:scale-110 hover:shadow-lg hover:shadow-[#B19EEF]/20">
-            <svg
-              className={`h-4 w-4 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </div>
-        </button>
       </aside>
     </>
   );
