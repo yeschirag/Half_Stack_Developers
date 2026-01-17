@@ -199,13 +199,13 @@ export default function HeroClient() {
             h-12 w-full max-w-xs
             rounded-xl
             border border-white/10
-            bg-white/3
+            bg-white/5
             backdrop-blur-sm
             text-white
             font-medium
             transition-all
             duration-200
-            hover:bg-white/6
+            hover:bg-white/10
             active:scale-[0.99]
             focus:outline-none
             disabled:opacity-50
@@ -217,42 +217,76 @@ export default function HeroClient() {
         </button>
       </div>
 
-      {/* Test User Login Toggle */}
-      <div className="pt-4">
-        <button
-          onClick={() => setShowTestLogin(!showTestLogin)}
-          className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
-        >
-          {showTestLogin ? 'Hide' : 'Client/Test Login'}
-        </button>
-      </div>
-
-      {/* Test Login Form */}
-      {showTestLogin && (
-        <div className="pt-2 space-y-3 max-w-xs mx-auto">
-          <input
-            type="email"
-            placeholder="Test email"
-            value={testEmail}
-            onChange={(e) => setTestEmail(e.target.value)}
-            className="w-full h-10 px-4 rounded-lg border border-white/10 bg-white/5 text-white text-sm placeholder:text-gray-500 outline-none focus:border-[#B19EEF]/50"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={testPassword}
-            onChange={(e) => setTestPassword(e.target.value)}
-            className="w-full h-10 px-4 rounded-lg border border-white/10 bg-white/5 text-white text-sm placeholder:text-gray-500 outline-none focus:border-[#B19EEF]/50"
-          />
+      {/* Login Button */}
+      <div className="pt-1">
+        {!showTestLogin ? (
           <button
-            onClick={handleTestLogin}
-            disabled={loading}
-            className="w-full h-10 rounded-lg border border-[#B19EEF]/30 bg-[#B19EEF]/10 text-[#B19EEF] text-sm font-medium hover:bg-[#B19EEF]/20 transition-all disabled:opacity-50"
+            onClick={() => setShowTestLogin(true)}
+            className="
+              h-12 w-full max-w-xs
+              rounded-xl
+              border border-white/10
+              bg-white/5
+              backdrop-blur-sm
+              text-white
+              font-medium
+              transition-all
+              duration-200
+              hover:bg-white/10
+              active:scale-[0.99]
+              focus:outline-none
+              md:max-w-md
+            "
           >
-            {loading ? 'Signing in...' : 'Login'}
+            Login
           </button>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-3 max-w-xs mx-auto md:max-w-md">
+            <input
+              type="email"
+              placeholder="Email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl border border-white/10 bg-white/5 text-white text-sm placeholder:text-gray-500 outline-none focus:border-white/20"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={testPassword}
+              onChange={(e) => setTestPassword(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl border border-white/10 bg-white/5 text-white text-sm placeholder:text-gray-500 outline-none focus:border-white/20"
+            />
+            <button
+              onClick={handleTestLogin}
+              disabled={loading}
+              className="
+                h-12 w-full
+                rounded-xl
+                border border-white/10
+                bg-white/5
+                backdrop-blur-sm
+                text-white
+                font-medium
+                transition-all
+                duration-200
+                hover:bg-white/10
+                active:scale-[0.99]
+                focus:outline-none
+                disabled:opacity-50
+                disabled:cursor-not-allowed
+              "
+            >
+              {loading ? 'Signing in...' : 'Login'}
+            </button>
+            <button
+              onClick={() => setShowTestLogin(false)}
+              className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+            >
+              Hide
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* 🔮 Nearly Invisible Demo Link */}
       <div className="pt-3">
