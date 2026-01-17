@@ -1,6 +1,10 @@
 'use client';
 
-import { FiCalendar, FiClock, FiMapPin, FiCheckCircle, FiZap, FiUsers, FiCoffee } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiCalendar, FiClock, FiMapPin, FiCheckCircle, FiZap, FiUsers, FiCoffee, FiLoader } from 'react-icons/fi';
+import { db } from '@/lib/firebase-client';
+import { collection, query, where, getDocs, or, orderBy, doc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 interface Meetup {
   id: string;
@@ -11,73 +15,6 @@ interface Meetup {
   projectName: string;
   status: 'pending' | 'completed';
 }
-
-// Mock data
-const mockMeetups: Meetup[] = [
-  {
-    id: '1',
-    date: 'Jan 18, 2026',
-    time: '2:00 PM',
-    person: 'Sarah Chen',
-    location: 'Library - Room 201',
-    projectName: 'AI Chatbot',
-    status: 'pending',
-  },
-  {
-    id: '2',
-    date: 'Jan 19, 2026',
-    time: '3:30 PM',
-    person: 'Alex Johnson',
-    location: 'Cafe Central',
-    projectName: 'Mobile App',
-    status: 'pending',
-  },
-  {
-    id: '3',
-    date: 'Jan 22, 2026',
-    time: '11:00 AM',
-    person: 'Priya Nair',
-    location: 'Innovation Hub',
-    projectName: 'HealthSync',
-    status: 'pending',
-  },
-  {
-    id: '4',
-    date: 'Jan 28, 2026',
-    time: '5:15 PM',
-    person: 'Diego Alvarez',
-    location: 'Zoom',
-    projectName: 'SustainLab',
-    status: 'pending',
-  },
-  {
-    id: '5',
-    date: 'Feb 03, 2026',
-    time: '1:30 PM',
-    person: 'Hannah Lee',
-    location: 'Studio 3',
-    projectName: 'Eventify',
-    status: 'pending',
-  },
-  {
-    id: '6',
-    date: 'Jan 10, 2026',
-    time: '1:00 PM',
-    person: 'Emily Zhang',
-    location: 'Lab 5',
-    projectName: 'Data Pipeline',
-    status: 'completed',
-  },
-  {
-    id: '7',
-    date: 'Jan 08, 2026',
-    time: '10:00 AM',
-    person: 'Marcus Williams',
-    location: 'Office A',
-    projectName: 'Web Platform',
-    status: 'completed',
-  },
-];
 
 interface MeetupCardProps {
   meetup: Meetup;
@@ -125,8 +62,97 @@ const MeetupCard = ({ meetup }: MeetupCardProps) => {
 };
 
 export default function Meetups() {
-  const pendingMeetups = mockMeetups.filter(m => m.status === 'pending');
-  const completedMeetups = mockMeetups.filter(m => m.status === 'completed');
+  const [meetups, setMeetups] = useState<Meetup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMeetups = async () => {
+      try {
+        const auth = getAuth();
+        const uid = auth.currentUser?.uid;
+        if (!uid) {
+          setError('Not signed in');
+          setLoading(false);
+          return;
+        }
+
+        const q = query(
+          collection(db, 'meetups'),
+          or(
+            where('proposerUid', '==', uid),
+            where('recipientUid', '==', uid)
+          ),
+          orderBy('proposedTime', 'desc')
+        );
+
+        const snapshot = await getDocs(q);
+        const meetupList: Meetup[] = [];
+
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data();
+
+          // Determine other user's UID
+          const otherUid = data.proposerUid === uid 
+            ? data.recipientUid 
+            : data.proposerUid;
+
+          // Fetch real name from users collection
+          const userDoc = await getDoc(doc(db, 'users', otherUid));
+          const otherName = userDoc.exists() ? userDoc.data().name || 'Unknown' : 'Unknown';
+
+          // Format date and time from proposedTime
+          const proposedDate = data.proposedTime?.toDate?.();
+          const dateStr = proposedDate 
+            ? proposedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'TBD';
+          const timeStr = proposedDate
+            ? proposedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : 'TBD';
+
+          meetupList.push({
+            id: docSnap.id,
+            date: dateStr,
+            time: timeStr,
+            person: otherName,
+            location: data.campusSpot === 'library' ? 'Library' : 'Central Cafe',
+            projectName: data.projectname || 'Untitled Project',
+            status: data.status || 'pending',
+          });
+        }
+
+        setMeetups(meetupList);
+        setError(null);
+      } catch (err: any) {
+        console.error('Meetups error:', err);
+        setError('Failed to load meetups. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMeetups();
+  }, []);
+
+  const pendingMeetups = meetups.filter(m => m.status === 'pending');
+  const completedMeetups = meetups.filter(m => m.status === 'completed');
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12 text-gray-400">
+        <FiLoader className="animate-spin mr-2" size={20} />
+        Loading your meetups...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center">
+        <p className="text-red-400">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
