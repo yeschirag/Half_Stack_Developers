@@ -1,6 +1,13 @@
+// src/components/dashboard/ProjectCard.tsx
 'use client';
 
-import { FiUsers, FiZap, FiClock, FiTarget, FiArrowUpRight } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { 
+  FiUsers, FiZap, FiClock, FiTarget, FiArrowUpRight,
+  FiLoader, FiAlertCircle, FiRefreshCw
+} from 'react-icons/fi';
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { db } from '@/lib/firebase-client';
 
 interface ProjectOwner {
   name: string;
@@ -30,7 +37,44 @@ interface ProjectCardProps {
   onClick: () => void;
 }
 
+interface AlignmentAnalysis {
+  text: string;
+  isLoading: boolean;
+  error: string | null;
+  hasAttempted: boolean;
+}
+
 export default function ProjectCard({ project, onClick }: ProjectCardProps) {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [alignment, setAlignment] = useState<AlignmentAnalysis>({
+    text: '',
+    isLoading: false,
+    error: null,
+    hasAttempted: false
+  });
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Track auth state using Firebase Auth
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Reset analysis when project changes
+  useEffect(() => {
+    setAlignment({ text: '', isLoading: false, error: null, hasAttempted: false });
+  }, [project.id]);
+
+  // Determine if we should show alignment features
+  const shouldShowAlignment = 
+    currentUser && 
+    currentUser.uid !== project.ownerId &&
+    !alignment.text &&
+    !alignment.isLoading;
+
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'from-emerald-500 to-teal-500';
     if (score >= 80) return 'from-[#B19EEF] to-[#8B7BD4]';
@@ -65,10 +109,63 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
       .slice(0, 2);
   };
 
+  const analyzeAlignment = async () => {
+    if (alignment.isLoading || !currentUser) return;
+    
+    setAlignment(prev => ({ ...prev, isLoading: true, error: null, hasAttempted: true }));
+    
+    try {
+      // Get fresh ID token (force refresh to avoid expiration issues)
+      const idToken = await currentUser.getIdToken(true);
+      
+      const response = await fetch('/api/gemini/alignment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to analyze alignment');
+      }
+
+      const { alignment: analysisText } = await response.json();
+      
+      setAlignment({
+        text: analysisText,
+        isLoading: false,
+        error: null,
+        hasAttempted: true
+      });
+    } catch (err: any) {
+      console.error('Alignment analysis failed:', err);
+      
+      // Handle auth expiration
+      if (err.message?.includes('Session expired') || err.message?.includes('Invalid token')) {
+        const auth = getAuth();
+        auth.signOut();
+        window.location.reload();
+        return;
+      }
+      
+      setAlignment(prev => ({
+        ...prev,
+        error: err.message || 'Could not generate analysis. Please try again.',
+        isLoading: false
+      }));
+    }
+  };
+
   return (
     <button
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className="group relative w-full h-full flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-[#12121a] text-left transition-all duration-300 hover:border-[#B19EEF]/30 hover:bg-[#15151f] font-['Inter',sans-serif]"
+      aria-label={`View details for project: ${project.title}`}
     >
       <div className="p-5 flex flex-col h-full">
         {/* Top row: Stage badge */}
@@ -85,7 +182,11 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
           <h3 className="text-xl font-semibold text-white group-hover:text-[#B19EEF] transition-colors duration-300">
             {project.title}
           </h3>
-          <FiArrowUpRight className="text-gray-600 group-hover:text-[#B19EEF] transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 mt-1 flex-shrink-0" size={18} />
+          <FiArrowUpRight 
+            className="text-gray-600 group-hover:text-[#B19EEF] transition-all duration-300 mt-1 flex-shrink-0" 
+            size={18} 
+            aria-hidden="true" 
+          />
         </div>
 
         {/* Owner Info */}
@@ -150,10 +251,81 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
           )}
         </div>
 
-        {/* Missing Roles - Bottom section */}
+        {/* Alignment Analysis Section */}
         <div className="pt-4 border-t border-white/5">
+          {/* Show analysis result */}
+          {alignment.text && (
+            <div 
+              className="mb-3 p-3 rounded-lg bg-gradient-to-r from-[#1a132a] to-[#0f0a1a] border border-[#B19EEF]/15 animate-fade-in"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2">
+                <div className="mt-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#B19EEF]/20">
+                  <FiZap size={10} className="text-[#B19EEF]" aria-hidden="true" />
+                </div>
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  {alignment.text}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Show error state */}
+          {alignment.error && alignment.hasAttempted && (
+            <div 
+              className="mb-3 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-start gap-2"
+              role="alert"
+            >
+              <FiAlertCircle className="mt-0.5 flex-shrink-0" size={16} aria-hidden="true" />
+              <span>{alignment.error}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  analyzeAlignment();
+                }}
+                className="ml-auto flex items-center gap-1 text-rose-200 hover:text-white text-xs font-medium"
+                aria-label="Retry analysis"
+              >
+                <FiRefreshCw size={12} />
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Show "Check Fit" button when applicable */}
+          {shouldShowAlignment && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                analyzeAlignment();
+              }}
+              disabled={alignment.isLoading}
+              className={`mb-3 w-full flex items-center justify-center gap-2 py-1.5 rounded-lg transition-colors ${
+                alignment.isLoading
+                  ? 'bg-[#B19EEF]/20 cursor-wait'
+                  : 'border border-dashed border-[#B19EEF]/30 bg-[#B19EEF]/5 text-[#B19EEF] hover:bg-[#B19EEF]/15'
+              }`}
+              aria-busy={alignment.isLoading}
+              aria-label={`Analyze compatibility with ${project.title}`}
+            >
+              {alignment.isLoading ? (
+                <>
+                  <FiLoader className="animate-spin" size={14} aria-hidden="true" />
+                  <span>Checking your fit...</span>
+                </>
+              ) : (
+                <>
+                  <FiZap size={14} aria-hidden="true" />
+                  <span>Check Your Fit</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* "Looking for" section (always visible) */}
           <div className="flex items-center gap-1.5 mb-2">
-            <FiTarget size={12} className="text-[#B19EEF]/60" />
+            <FiTarget size={12} className="text-[#B19EEF]/60" aria-hidden="true" />
             <span className="text-[10px] uppercase tracking-wider text-gray-600 font-medium">Looking for</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
