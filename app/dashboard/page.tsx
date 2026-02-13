@@ -110,8 +110,11 @@ export default function DashboardPage() {
           });
         });
 
-        // Filter out current user's own projects
-        const filteredProjects = fetchedProjects.filter(p => p.ownerId !== user.uid);
+        // Filter out current user's own projects and projects that are at max capacity
+        const filteredProjects = fetchedProjects.filter(p => 
+          p.ownerId !== user.uid && 
+          (!p.maxTeamSize || !p.teamSize || p.teamSize < p.maxTeamSize)
+        );
         setProjects(filteredProjects);
       } catch (err: any) {
         console.error('Failed to fetch projects:', err);

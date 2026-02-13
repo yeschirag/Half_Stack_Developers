@@ -90,7 +90,7 @@ ANALYSIS RULES:
 2. Address gaps constructively (e.g., "While Python isn't listed in your skills, your JavaScript background provides strong transferable concepts for their Flask API")
 3. NEVER mention names, emails, or other PII
 4. NEVER make up skills not in the profile
-5. Keep to exactly 2 sentences
+5. Respond with exactly 2 sentences - no more, no less
 6. End with forward-looking encouragement
 7. Output PLAIN TEXT ONLY - no markdown, asterisks, or labels
 
