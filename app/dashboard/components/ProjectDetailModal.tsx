@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FiUsers, FiCalendar, FiZap, FiClock, FiTarget, FiLayers } from 'react-icons/fi';
+import { FiUsers, FiCalendar, FiZap, FiClock, FiTarget, FiLayers, FiLoader } from 'react-icons/fi';
 import { getAuth } from 'firebase/auth';
 import { addDoc, collection, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
@@ -43,22 +43,78 @@ export default function ProjectDetailModal({
 }: ProjectDetailModalProps) {
   const [isRequestingMeetup, setIsRequestingMeetup] = useState(false);
   const [meetupError, setMeetupError] = useState<string | null>(null);
+  const [alignment, setAlignment] = useState<string | null>(null);
+  const [alignmentLoading, setAlignmentLoading] = useState(false);
+  const [alignmentError, setAlignmentError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
+      
+      // Fetch alignment when modal opens
+      if (project) {
+        fetchAlignment();
+      }
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, project]);
+
+  const fetchAlignment = async () => {
+    if (!project) return;
+    
+    setAlignmentLoading(true);
+    setAlignmentError(null);
+    
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/gemini/alignment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await currentUser.getIdToken()}`
+        },
+        body: JSON.stringify({ projectId: project.id })
+      });
+
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Server returned an unexpected response format');
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch alignment');
+      }
+
+      const data = await response.json();
+      setAlignment(data.alignment);
+    } catch (error: any) {
+      console.error('Failed to fetch alignment:', error);
+      // More specific error handling
+      if (error.message.includes('unexpected response format')) {
+        setAlignmentError('Server error: Unable to connect to alignment service');
+      } else {
+        setAlignmentError(error.message || 'Failed to analyze project alignment');
+      }
+    } finally {
+      setAlignmentLoading(false);
+    }
+  };
 
   if (!isOpen || !project) return null;
 
@@ -206,6 +262,32 @@ export default function ProjectDetailModal({
 
           {/* Content */}
           <div className="space-y-5 px-6 pb-6">
+            {/* Alignment Analysis */}
+            <div>
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                <FiZap size={12} />
+                Why This Matches You
+              </h3>
+              {alignmentLoading ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <FiLoader className="animate-spin" size={14} />
+                  Analyzing project alignment...
+                </div>
+              ) : alignmentError ? (
+                <div className="text-sm text-red-400">
+                  {alignmentError}
+                </div>
+              ) : alignment ? (
+                <div className="text-sm text-gray-300 leading-relaxed bg-[#1a1a25]/30 rounded-lg p-3 border border-[#B19EEF]/10 max-h-40 overflow-y-auto">
+                  {alignment}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 italic">
+                  Unable to analyze project alignment
+                </div>
+              )}
+            </div>
+
             {/* The Idea */}
             <div>
               <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
